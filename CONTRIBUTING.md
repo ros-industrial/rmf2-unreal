@@ -33,5 +33,5 @@ Run `clang-format`
 
 Automatically reformat the files
 ```bash
-./clang-format.sh --reforamt ./Source
+./clang-format.sh --reformat ./Source
 ```
