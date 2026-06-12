@@ -11,7 +11,7 @@ Positional Arguments:
 
 Options:
   -h, --help      Display this help message and exit.
-  --reformat      Reformat the
+  --reformat      Reformat files in place
 
 Examples:
   $(basename "$0") -h
