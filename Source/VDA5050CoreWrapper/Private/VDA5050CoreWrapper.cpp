@@ -125,16 +125,27 @@ public:
     if (nodes_.empty())
     {
       auto order_update = context->get_update<OrderUpdate>();
-      if (order_update && order_update->order.order_id != current_order_id_)
+      if (order_update &&
+          (order_update->order.order_id != current_order_id_ ||
+           order_update->order.order_update_id > current_order_update_id_))
       {
-        VDA5050_INFO("Adding nodes");
+        bool is_new_order = (order_update->order.order_id != current_order_id_);
+        VDA5050_INFO(
+            "{} - orderId: {}, updateId: {}",
+            is_new_order ? "New order" : "Order update",
+            order_update->order.order_id,
+            order_update->order.order_update_id
+        );
         nodes_ = order_update->order.nodes;
         current_order_id_ = order_update->order.order_id;
+        current_order_update_id_ = order_update->order.order_update_id;
         current_idx_ = 0;
         order_completed_ = false;
       }
       else
+      {
         return;
+      }
     }
 
     if (current_idx_ < nodes_.size())
@@ -170,6 +181,7 @@ public:
 private:
   std::vector<vda5050_types::Node> nodes_;
   size_t current_idx_ = 0;
+  uint32_t current_order_update_id_ = 0;
   std::string current_order_id_;
   bool order_completed_ = false;
 };
