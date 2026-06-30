@@ -72,7 +72,6 @@ struct NodeDispatchEvent : public Initialize<NodeDispatchEvent, EventBase>
       : sequence_id(sequence_id), x(x), y(y), theta(theta)
   {
   }
-  The two branches talk to each o
 };
 
 struct NodeAckUpdate : public Initialize<NodeAckUpdate, UpdateBase>
