@@ -72,6 +72,7 @@ struct NodeDispatchEvent : public Initialize<NodeDispatchEvent, EventBase>
       : sequence_id(sequence_id), x(x), y(y), theta(theta)
   {
   }
+  The two branches talk to each o
 };
 
 struct NodeAckUpdate : public Initialize<NodeAckUpdate, UpdateBase>
@@ -125,11 +126,14 @@ public:
     if (nodes_.empty())
     {
       auto order_update = context->get_update<OrderUpdate>();
-      if (order_update &&
-          (order_update->order.order_id != current_order_id_ ||
-           order_update->order.order_update_id > current_order_update_id_))
+      if (!order_update)
       {
-        bool is_new_order = (order_update->order.order_id != current_order_id_);
+        return;
+      }
+      bool is_new_order = (order_update->order.order_id != current_order_id_);
+      if (is_new_order ||
+          order_update->order.order_update_id > current_order_update_id_)
+      {
         VDA5050_INFO(
             "{} - orderId: {}, updateId: {}",
             is_new_order ? "New order" : "Order update",
