@@ -22,35 +22,38 @@
 #include <mutex>
 #include <typeindex>
 #include <unordered_map>
+#include <vector>
+
+#include <nlohmann/json.hpp>
 
 #include <vda5050_core/logger/logger.hpp>
-#include <vda5050_core/mqtt_client/mqtt_client_interface.hpp>
+#include <vda5050_core/transport/mqtt_client_interface.hpp>
 
-#include <vda5050_types/connection.hpp>
-#include <vda5050_types/order.hpp>
-#include <vda5050_types/state.hpp>
+#include <vda5050_core/types/connection.hpp>
+#include <vda5050_core/types/order.hpp>
+#include <vda5050_core/types/state.hpp>
 
-#include "vda5050_execution/base.hpp"
-#include "vda5050_execution/context_interface.hpp"
-#include "vda5050_execution/handler.hpp"
-#include "vda5050_execution/protocol_adapter.hpp"
-#include "vda5050_execution/strategy_interface.hpp"
+#include "vda5050_core/execution/base.hpp"
+#include "vda5050_core/execution/context_interface.hpp"
+#include "vda5050_core/execution/handler.hpp"
+#include "vda5050_core/execution/protocol_adapter.hpp"
+#include "vda5050_core/execution/strategy_interface.hpp"
 
-using vda5050_execution::ContextInterface;
-using vda5050_execution::EventBase;
-using vda5050_execution::Handler;
-using vda5050_execution::Initialize;
-using vda5050_execution::Priority;
-using vda5050_execution::ProtocolAdapter;
-using vda5050_execution::ResourceBase;
-using vda5050_execution::StrategyInterface;
-using vda5050_execution::UpdateBase;
+using vda5050_core::execution::ContextInterface;
+using vda5050_core::execution::EventBase;
+using vda5050_core::execution::Handler;
+using vda5050_core::execution::Initialize;
+using vda5050_core::execution::Priority;
+using vda5050_core::execution::ProtocolAdapter;
+using vda5050_core::execution::ResourceBase;
+using vda5050_core::execution::StrategyInterface;
+using vda5050_core::execution::UpdateBase;
 
 struct OrderUpdate : public Initialize<OrderUpdate, UpdateBase>
 {
-  vda5050_types::Order order;
+  vda5050_core::types::Order order;
 
-  explicit OrderUpdate(const vda5050_types::Order& order)
+  explicit OrderUpdate(const vda5050_core::types::Order& order)
       : order(std::move(order))
   {
     // Nothing to do here ...
@@ -182,7 +185,7 @@ public:
   }
 
 private:
-  std::vector<vda5050_types::Node> nodes_;
+  std::vector<vda5050_core::types::Node> nodes_;
   size_t current_idx_ = 0;
   uint32_t current_order_update_id_ = 0;
   std::string current_order_id_;
@@ -233,8 +236,8 @@ struct AGVState
   uint32_t order_update_id = 0;
   std::string last_node_id;
   uint32_t last_node_sequence_id = 0;
-  std::vector<vda5050_types::NodeState> node_states;
-  std::vector<vda5050_types::EdgeState> edge_states;
+  std::vector<vda5050_core::types::NodeState> node_states;
+  std::vector<vda5050_core::types::EdgeState> edge_states;
   double x = 0.0, y = 0.0, theta = 0.0;
   std::string map_id;
   bool driving = false;
@@ -303,7 +306,7 @@ private:
     std::lock_guard<std::mutex> lock(agv_state_->mutex);
     agv_state_->event_triggered = false;
 
-    vda5050_types::State state;
+    vda5050_core::types::State state;
     state.order_id = agv_state_->order_id;
     state.order_update_id = agv_state_->order_update_id;
     state.last_node_id = agv_state_->last_node_id;
@@ -311,20 +314,20 @@ private:
     state.node_states = agv_state_->node_states;
     state.edge_states = agv_state_->edge_states;
     state.driving = agv_state_->driving;
-    state.operating_mode = vda5050_types::OperatingMode::AUTOMATIC;
+    state.operating_mode = vda5050_core::types::OperatingMode::AUTOMATIC;
     state.battery_state.battery_charge = 100.0;
     state.battery_state.charging = false;
-    state.safety_state.e_stop = vda5050_types::EStop::NONE;
+    state.safety_state.e_stop = vda5050_core::types::EStop::NONE;
     state.safety_state.field_violation = false;
 
-    vda5050_types::AGVPosition pos;
+    vda5050_core::types::AGVPosition pos;
     pos.x = agv_state_->x;
     pos.y = agv_state_->y;
     pos.theta = agv_state_->theta;
     pos.map_id = agv_state_->map_id;
     state.agv_position = pos;
 
-    protocol_adapter_->publish<vda5050_types::State>(state, 0, false);
+    protocol_adapter_->publish<vda5050_core::types::State>(state, 0, false);
   }
 };
 
@@ -350,7 +353,7 @@ bool FVDA5050Client::Connect(
     const std::string& SerialNumber
 )
 {
-  auto mqtt_client = vda5050_core::mqtt_client::create_default_client_unique(
+  auto mqtt_client = vda5050_core::transport::create_default_client_unique(
       BrokerAddress,
       SerialNumber + "-UE5_VDA5050Client"
   );
@@ -361,11 +364,11 @@ bool FVDA5050Client::Connect(
       Manufacturer,
       SerialNumber
   );
-  vda5050_types::Connection connection_will;
+  vda5050_core::types::Connection connection_will;
   connection_will.connection_state =
-      vda5050_types::ConnectionState::CONNECTIONBROKEN;
-  Impl->protocol_adapter
-      ->set_will<vda5050_types::Connection>(connection_will, 1, true);
+      vda5050_core::types::ConnectionState::CONNECTIONBROKEN;
+  // Impl->protocol_adapter
+  //    ->set_will<vda5050_core::types::Connection>(connection_will, 1, true);
 
   try
   {
@@ -390,7 +393,7 @@ bool FVDA5050Client::Connect(
   );
   Impl->navigation_strategy->on_node_dispatch = &OnNodeDispatch;
 
-  Impl->protocol_adapter->subscribe<vda5050_types::Order>(
+  Impl->protocol_adapter->subscribe<vda5050_core::types::Order>(
       [this,
        w = std::weak_ptr<ContextInterface>(Impl->context),
        agv_state = Impl->agv_state](auto order, auto error)
@@ -412,13 +415,13 @@ bool FVDA5050Client::Connect(
           agv_state->edge_states.clear();
           for (const auto& node : order.nodes)
           {
-            vda5050_types::NodeState node_state;
+            vda5050_core::types::NodeState node_state;
             node_state.node_id = node.node_id;
             node_state.sequence_id = node.sequence_id;
             node_state.released = node.released;
             if (node.node_position.has_value())
             {
-              vda5050_types::NodePosition node_pos;
+              vda5050_core::types::NodePosition node_pos;
               node_pos.x = node.node_position->x;
               node_pos.y = node.node_position->y;
               node_pos.map_id = node.node_position->map_id;
@@ -453,10 +456,10 @@ bool FVDA5050Client::Connect(
       0
   );
 
-  vda5050_types::Connection connection_online;
-  connection_online.connection_state = vda5050_types::ConnectionState::ONLINE;
+  vda5050_core::types::Connection connection_online;
+  connection_online.connection_state = vda5050_core::types::ConnectionState::ONLINE;
   Impl->protocol_adapter
-      ->publish<vda5050_types::Connection>(connection_online, 1, true);
+      ->publish<vda5050_core::types::Connection>(connection_online, 1, true);
 
   return true;
 }
@@ -507,10 +510,10 @@ void FVDA5050Client::Disconnect()
   {
     Impl->handler->stop();
   }
-  vda5050_types::Connection connection_offline;
-  connection_offline.connection_state = vda5050_types::ConnectionState::OFFLINE;
+  vda5050_core::types::Connection connection_offline;
+  connection_offline.connection_state = vda5050_core::types::ConnectionState::OFFLINE;
   Impl->protocol_adapter
-      ->publish<vda5050_types::Connection>(connection_offline, 1, true);
+      ->publish<vda5050_core::types::Connection>(connection_offline, 1, true);
 
   Impl->protocol_adapter->disconnect();
   Impl->protocol_adapter.reset();
