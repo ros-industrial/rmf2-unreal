@@ -3,6 +3,9 @@ name: Build Linux
 on:
   workflow_call:
     inputs:
+      target-env:
+        required: true
+        type: string
       runner-label:
         required: true
         type: string
@@ -24,6 +27,7 @@ on:
 jobs:
   build:
     runs-on: ${{ inputs.runner-label }}
+    environment: ${{ inputs.target-env }}
     steps:
       - name: Display system info
         run: |
