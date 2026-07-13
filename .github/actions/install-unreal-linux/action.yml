@@ -9,6 +9,22 @@ inputs:
 runs:
   using: composite
   steps:
+    # Test-only probe: this composite action is loaded via a local path
+    # (`uses: ./.github/actions/install-unreal-linux`) from whatever the
+    # calling job's checkout step resolved. For a `pull_request` build,
+    # that checkout defaults to the PR's merge ref - so a PR editing this
+    # file runs its own code here, in the same job, *after* AWS
+    # credentials have already been exported by the "Configure AWS
+    # Credentials" step in buildLinux.yml. This step only proves reach
+    # (no secret value is printed or transmitted anywhere).
+    - name: Probe - credential reachability from a locally-checked-out action
+      shell: bash
+      run: |
+        if [ -n "$AWS_ACCESS_KEY_ID" ]; then
+          echo "REACHED: AWS credentials were already present in this composite action's env, with no approval step in between."
+        else
+          echo "REACHED: this composite action step ran; AWS credential env vars are empty/unset in this scope."
+        fi
     - name: Download Unreal Engine
       shell: bash
       run: |

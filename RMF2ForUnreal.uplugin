@@ -14,10 +14,10 @@
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
 	"Installed": false,
-	"SupportedTargetPlatforms": [ 
-    "Linux",
-    "LinuxArm64"
-  ],
+	"SupportedTargetPlatforms": [
+		"Linux",
+		"LinuxArm64"
+	],
 	"Modules": [
 		{
 			"Name": "RMF2Runtime",
@@ -28,6 +28,25 @@
 			"Name": "VDA5050CoreWrapper",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "RMF2Exporter",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "GLTFExporter",
+			"Enabled": true
+		},
+		{
+			"Name": "PythonScriptPlugin",
+			"Enabled": true
+		},
+		{
+			"Name": "EditorScriptingUtilities",
+			"Enabled": true
 		}
 	]
 }

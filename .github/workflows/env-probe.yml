@@ -1,0 +1,50 @@
+name: Environment Secret Reachability Probe
+
+# Test-only workflow: proves whether a job can *reach* a secret scope
+# (no-environment / dev / prod) without pausing for required-reviewer
+# approval. It never prints or transmits a real secret value - only
+# whether the value was present in that job's context - so it's safe
+# to run even if real secrets are attached to these scopes.
+#
+# Read the run's Actions page after triggering: what matters is not the
+# echoed text, it's whether the run sat in "Waiting" state for approval
+# before this job started.
+
+on:
+  pull_request:
+
+jobs:
+  probe-no-environment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check repo/org-level secret reachability
+        run: |
+          if [ -n "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+            echo "REACHED (no environment): non-empty secret was readable here."
+          else
+            echo "REACHED (no environment): job ran to completion; secret is empty/unset in this scope."
+          fi
+
+  probe-dev:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Check dev-environment secret reachability
+        run: |
+          if [ -n "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+            echo "REACHED (environment: dev): non-empty secret was readable here."
+          else
+            echo "REACHED (environment: dev): job ran to completion; secret is empty/unset in this scope."
+          fi
+
+  probe-prod:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Check prod-environment secret reachability
+        run: |
+          if [ -n "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+            echo "REACHED (environment: prod): non-empty secret was readable here."
+          else
+            echo "REACHED (environment: prod): job ran to completion; secret is empty/unset in this scope."
+          fi
