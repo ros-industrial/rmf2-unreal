@@ -16,8 +16,6 @@ public class VDA5050CoreWrapper : ModuleRules
 
         PrivateIncludePaths.Add(IncludePath);
 
-        // vda5050_core libraries (built from ~/vda5050_core with the UE toolchain)
-        // plus the external MQTT/formatting deps they link against.
         string[] SharedLibs =
         {
             "libvda5050_execution.so",

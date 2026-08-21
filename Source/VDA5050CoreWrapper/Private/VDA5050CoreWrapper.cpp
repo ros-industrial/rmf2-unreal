@@ -53,7 +53,6 @@ struct FVDA5050Client::FImpl
   std::shared_ptr<StateManager> state_manager;
   std::shared_ptr<OrderExecution> active_navigation;
   std::mutex mutex;
-
 };
 
 FVDA5050Client::FVDA5050Client() : Impl(std::make_unique<FImpl>()) {}
@@ -83,49 +82,60 @@ bool FVDA5050Client::Connect(
 
   Impl->state_manager = Impl->adapter->state_manager();
 
-  Impl->adapter->on_navigate([this](
-                               NodeRequest node_request,
-                               std::optional<EdgeRequest> edge_request,
-                               std::shared_ptr<OrderExecution> execution)
-    {
-      const auto& position = node_request.node_position();
-      if (!position.has_value()) {
-        execution->failed("Requested node does not contain a position");
-        return;
-    }
-    {
-      std::lock_guard<std::mutex> lock (Impl->mutex);
-      Impl->active_navigation = std::move(execution);
-    }
-    Impl->state_manager->set_driving(true);
+  Impl->adapter->on_navigate(
+      [this](
+          NodeRequest node_request,
+          std::optional<EdgeRequest> edge_request,
+          std::shared_ptr<OrderExecution> execution
+      )
+      {
+        const auto& position = node_request.node_position();
+        if (!position.has_value())
+        {
+          execution->failed("Requested node does not contain a position");
+          return;
+        }
+        {
+          std::lock_guard<std::mutex> lock(Impl->mutex);
+          Impl->active_navigation = std::move(execution);
+        }
+        Impl->state_manager->set_driving(true);
 
-    // On active navigation, we dispatch node_request to the UE5 delegate 
-    if (OnNodeDispatch)
-    {
-      FVDA5050Node node;
-      node.NodeId = node_request.node_id();
-      node.SequenceId = node_request.sequence_id();
-      node.X = position->x;
-      node.Y = position->y;
-      node.Theta = position->theta;
-      OnNodeDispatch(node);
-    }
-  });
+        // On active navigation, we dispatch node_request to the UE5 delegate
+        if (OnNodeDispatch)
+        {
+          FVDA5050Node node;
+          node.NodeId = node_request.node_id();
+          node.SequenceId = node_request.sequence_id();
+          node.X = position->x;
+          node.Y = position->y;
+          node.Theta = position->theta;
+          OnNodeDispatch(node);
+        }
+      }
+  );
 
-  Impl->adapter->on_action([this]( 
-    ActionRequest request,
-    std::shared_ptr<ActionExecution> execution) {
-      execution->finished();
-  });
+  Impl->adapter->on_action(
+      [this](ActionRequest request, std::shared_ptr<ActionExecution> execution)
+      { execution->finished(); }
+  );
 
-  Impl->adapter->on_localize([this](
-    LocalizationRequest request,
-    std::shared_ptr<ActionExecution> execution) {
-      Impl->state_manager->initialize_position(
-        request.x(), request.y(), request.theta(), request.map_id());
+  Impl->adapter->on_localize(
+      [this](
+          LocalizationRequest request,
+          std::shared_ptr<ActionExecution> execution
+      )
+      {
+        Impl->state_manager->initialize_position(
+            request.x(),
+            request.y(),
+            request.theta(),
+            request.map_id()
+        );
 
-      execution->finished();
-    });
+        execution->finished();
+      }
+  );
   Impl->adapter->start();
   return true;
 }

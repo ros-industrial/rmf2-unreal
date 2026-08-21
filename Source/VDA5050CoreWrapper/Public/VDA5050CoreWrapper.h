@@ -55,7 +55,7 @@ public:
   );
 
   void Disconnect();
-  
+
   void ClientNodeAck(uint32_t SequenceId);
 
   std::function<void(const FVDA5050Node&)> OnNodeDispatch;
