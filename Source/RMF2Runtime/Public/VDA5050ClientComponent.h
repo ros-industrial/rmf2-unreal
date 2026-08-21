@@ -100,9 +100,6 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VDA5050|Connection")
   bool bAutoConnect = false;
 
-  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VDA5050|State")
-  bool bPublishState = true;
-
   UPROPERTY(BlueprintAssignable, Category = "VDA5050|Events")
   FOnNodeDispatch OnNodeDispatch;
 

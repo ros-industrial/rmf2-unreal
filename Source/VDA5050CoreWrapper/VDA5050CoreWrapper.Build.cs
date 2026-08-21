@@ -16,22 +16,31 @@ public class VDA5050CoreWrapper : ModuleRules
 
         PrivateIncludePaths.Add(IncludePath);
 
-        PublicAdditionalLibraries.Add(Path.Combine(LibPath, "libvda5050_execution.so"));
-        PublicAdditionalLibraries.Add(Path.Combine(LibPath, "libmqtt_client.so"));
-        PublicAdditionalLibraries.Add(Path.Combine(LibPath, "liblogger.so"));
-        PublicAdditionalLibraries.Add(Path.Combine(LibPath, "libclient.so"));
-        PublicAdditionalLibraries.Add(Path.Combine(LibPath, "libpaho-mqttpp3.so"));
-        PublicAdditionalLibraries.Add(Path.Combine(LibPath, "libpaho-mqtt3a.so"));
-        PublicAdditionalLibraries.Add(Path.Combine(LibPath, "libfmt.so"));
+        // vda5050_core libraries (built from ~/vda5050_core with the UE toolchain)
+        // plus the external MQTT/formatting deps they link against.
+        string[] SharedLibs =
+        {
+            "libvda5050_execution.so",
+            "libvda5050_transport.so",
+            "libvda5050_logger.so",
+            "libvda5050_client.so",
+            "libvda5050_validation.so",
+            "libvda5050_layout.so",
+            "libvda5050_master.so",
+            "libpaho-mqttpp3.so",
+            "libpaho-mqtt3a.so",
+            "libfmt.so",
+        };
 
-        // Copy to output dir at runtime
-        RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", "libvda5050_execution.so"), Path.Combine(LibPath, "libvda5050_execution.so"), StagedFileType.NonUFS);
-        RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", "libmqtt_client.so"), Path.Combine(LibPath, "libmqtt_client.so"), StagedFileType.NonUFS);
-        RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", "liblogger.so"), Path.Combine(LibPath, "liblogger.so"), StagedFileType.NonUFS);
-        RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", "libclient.so"), Path.Combine(LibPath, "libclient.so"), StagedFileType.NonUFS);
-        RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", "libpaho-mqttpp3.so"), Path.Combine(LibPath, "libpaho-mqttpp3.so"), StagedFileType.NonUFS);
-        RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", "libpaho-mqtt3a.so"), Path.Combine(LibPath, "libpaho-mqtt3a.so"), StagedFileType.NonUFS);
-        RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", "libfmt.so"), Path.Combine(LibPath, "libfmt.so"), StagedFileType.NonUFS);
+        foreach (string Lib in SharedLibs)
+        {
+            PublicAdditionalLibraries.Add(Path.Combine(LibPath, Lib));
+            // Copy to output dir at runtime
+            RuntimeDependencies.Add(
+                Path.Combine("$(TargetOutputDir)", Lib),
+                Path.Combine(LibPath, Lib),
+                StagedFileType.NonUFS);
+        }
 
         PublicRuntimeLibraryPaths.Add(LibPath);
 

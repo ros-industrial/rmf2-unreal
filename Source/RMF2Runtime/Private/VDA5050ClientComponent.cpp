@@ -132,10 +132,6 @@ void UVDA5050ClientComponent::Connect(
             TCHAR_TO_UTF8(*manufacturer),
             TCHAR_TO_UTF8(*serial_number)
         );
-        if (bSuccess)
-        {
-          Client->SetPublishState(bPublishState);
-        }
         // TODO(DillonChew98): Add case to handle connection failure.
         // while (!bSuccess) {}
         AsyncTask(
@@ -169,8 +165,4 @@ void UVDA5050ClientComponent::TickComponent(
 )
 {
   Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-  if (Client)
-  {
-    Client->SpinOnce();
-  }
 }

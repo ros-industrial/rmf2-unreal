@@ -55,12 +55,8 @@ public:
   );
 
   void Disconnect();
-
-  void SpinOnce();
-
+  
   void ClientNodeAck(uint32_t SequenceId);
-
-  void SetPublishState(bool bEnabled);
 
   std::function<void(const FVDA5050Node&)> OnNodeDispatch;
   std::function<void(const FVDA5050Order&)> OnOrderReceived;
