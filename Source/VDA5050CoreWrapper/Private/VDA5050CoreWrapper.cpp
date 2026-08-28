@@ -18,11 +18,9 @@
 
 #include "VDA5050CoreWrapper.h"
 
-#include <atomic>
-#include <chrono>
-#include <csignal>
 #include <memory>
-#include <thread>
+#include <mutex>
+#include <string>
 
 #include "vda5050_core/execution/protocol_adapter.hpp"
 #include "vda5050_core/logger/logger.hpp"
@@ -35,6 +33,7 @@
 #include "vda5050_core/client/adapter/localization_request.hpp"
 #include "vda5050_core/client/adapter/node_request.hpp"
 #include "vda5050_core/client/adapter/order_execution.hpp"
+#include "vda5050_core/client/adapter/state_manager.hpp"
 
 using vda5050_core::client::adapter::ActionExecution;
 using vda5050_core::client::adapter::ActionRequest;
@@ -53,6 +52,7 @@ struct FVDA5050Client::FImpl
   std::shared_ptr<StateManager> state_manager;
   std::shared_ptr<OrderExecution> active_navigation;
   std::mutex mutex;
+  std::string map_id;
 };
 
 FVDA5050Client::FVDA5050Client() : Impl(std::make_unique<FImpl>()) {}
@@ -98,6 +98,7 @@ bool FVDA5050Client::Connect(
         {
           std::lock_guard<std::mutex> lock(Impl->mutex);
           Impl->active_navigation = std::move(execution);
+          Impl->map_id = position->map_id;
         }
         Impl->state_manager->set_driving(true);
 
@@ -126,6 +127,10 @@ bool FVDA5050Client::Connect(
           std::shared_ptr<ActionExecution> execution
       )
       {
+        {
+          std::lock_guard<std::mutex> lock(Impl->mutex);
+          Impl->map_id = request.map_id();
+        }
         Impl->state_manager->initialize_position(
             request.x(),
             request.y(),
@@ -136,7 +141,22 @@ bool FVDA5050Client::Connect(
         execution->finished();
       }
   );
-  Impl->adapter->start();
+  try
+  {
+    Impl->adapter->start();
+  }
+  catch (const std::exception& e)
+  {
+    VDA5050_ERROR(
+        "Failed to start adapter: {}-UE5_VDA5050Client, {}",
+        SerialNumber,
+        e.what()
+    );
+    Impl->adapter.reset();
+    Impl->state_manager.reset();
+    Impl->protocol_adapter.reset();
+    return false;
+  }
   return true;
 }
 
@@ -152,6 +172,20 @@ void FVDA5050Client::ClientNodeAck(uint32_t SequenceId)
     Impl->state_manager->set_driving(false);
     execution->finished();
   }
+}
+
+void FVDA5050Client::ReportPose(double X, double Y, double Theta)
+{
+  if (!Impl || !Impl->state_manager)
+  {
+    return;
+  }
+  std::string map_id;
+  {
+    std::lock_guard<std::mutex> lock(Impl->mutex);
+    map_id = Impl->map_id;
+  }
+  Impl->state_manager->set_position(X, Y, Theta, map_id);
 }
 
 void FVDA5050Client::Disconnect()

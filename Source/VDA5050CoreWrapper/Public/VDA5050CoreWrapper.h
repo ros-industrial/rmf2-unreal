@@ -22,7 +22,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <vector>
 
 struct FVDA5050Node
 {
@@ -30,13 +29,6 @@ struct FVDA5050Node
   uint32_t SequenceId;
   double X, Y;
   std::optional<double> Theta;
-};
-
-struct FVDA5050Order
-{
-  std::string OrderId;
-  uint32_t OrderUpdateId;
-  std::vector<FVDA5050Node> Nodes;
 };
 
 class VDA5050COREWRAPPER_API FVDA5050Client
@@ -58,9 +50,9 @@ public:
 
   void ClientNodeAck(uint32_t SequenceId);
 
+  void ReportPose(double X, double Y, double Theta);
+
   std::function<void(const FVDA5050Node&)> OnNodeDispatch;
-  std::function<void(const FVDA5050Order&)> OnOrderReceived;
-  std::function<void(double& X, double& Y, double& Theta)> OnPositionRequest;
 
 private:
   struct FImpl;

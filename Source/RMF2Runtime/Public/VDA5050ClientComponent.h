@@ -43,31 +43,12 @@ struct RMF2RUNTIME_API FVDA5050NodeInfo
   float Theta = 0.0f;
 };
 
-USTRUCT(BlueprintType)
-struct RMF2RUNTIME_API FVDA5050OrderInfo
-{
-  GENERATED_BODY()
-
-  UPROPERTY(BlueprintReadOnly, Category = "VDA5050")
-  FString OrderId;
-
-  UPROPERTY(BlueprintReadOnly, Category = "VDA5050")
-  int32 OrderUpdateId = 0;
-
-  UPROPERTY(BlueprintReadOnly, Category = "VDA5050")
-  TArray<FVDA5050NodeInfo> Nodes;
-};
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
     FOnNodeDispatch,
     const FVDA5050NodeInfo&,
     Node
 );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-    FOnOrderReceived,
-    const FVDA5050OrderInfo&,
-    Order
-);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConnectComplete, bool, bSuccess);
 
 UCLASS(ClassGroup = (VDA5050), meta = (BlueprintSpawnableComponent))
@@ -104,9 +85,6 @@ public:
   FOnNodeDispatch OnNodeDispatch;
 
   UPROPERTY(BlueprintAssignable, Category = "VDA5050|Events")
-  FOnOrderReceived OnOrderReceived;
-
-  UPROPERTY(BlueprintAssignable, Category = "VDA5050|Events")
   FOnConnectComplete OnConnectComplete;
 
   UFUNCTION(
@@ -119,7 +97,7 @@ public:
   void Connect(
       const FString& InBrokerAddress = "tcp://localhost:1883",
       const FString& InInterfaceName = "",
-      const FString& InVersion = "1.0.0",
+      const FString& InVersion = "2.0.0",
       const FString& InManufacturer = "Manufacturer",
       const FString& InSerialNumber = ""
   );
