@@ -131,6 +131,24 @@ void UVDA5050ClientComponent::AcknowledgeNode(int32 SequenceId)
   }
 }
 
+void UVDA5050ClientComponent::ReportActionState(
+    const FString& ActionId,
+    const FString& ActionType,
+    EVDA5050ActionStatus Status,
+    const FString& ResultDescription
+)
+{
+  if (Client)
+  {
+    Client->ReportActionState(
+        TCHAR_TO_UTF8(*ActionId),
+        TCHAR_TO_UTF8(*ActionType),
+        static_cast<int>(Status),
+        TCHAR_TO_UTF8(*ResultDescription)
+    );
+  }
+}
+
 void UVDA5050ClientComponent::TickComponent(
     float DeltaTime,
     ELevelTick TickType,

@@ -32,14 +32,24 @@ Used to construct the VDA5050 MQTT topic structure (`<InterfaceName>/<Version>/<
 | `bAutoConnect` | Boolean | `false` | When enabled, the component will automatically connect to the broker on BeginPlay. If disabled, you must call `Connect()` manually from Blueprint. **NOTE**: If there are multiple actor instances of the blueprint in the level, it is best to disable this unless `SerialNumber` is set to instance-editable. |
 
 
-#### State
+#### Reporting Action State
 
-Controls the component's state reporting behaviour.
+Used to report current action state
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `bPublishState` | Boolean | `true` | When enabled, the component periodically publishes AGV state messages (position, velocity, battery, order status, etc.) |
+| `ActionId` | String | `""` | Unique identifier of the action | 
+| `ActionType` | String | `""` | Type of the action. Only for visualization purposes |
+| `Status` | Enum | `""` | Current progression of the action `Waiting`, `Initializing`, `Running`, `Puased`, `Finished`, `Failed` |
+| `ResultDescription` | String | `""` | The result of the action |
 
+#### Automatic State Reporting
+
+Once connected, the component publishes the AGV `state` message automatically — no Blueprint calls are required for these:
+
+- **Position** — the owning actor's world transform is published as `agvPosition` every tick (converted from Unreal centimetres to metres).
+- **Map** — `agvPosition.mapId` is adopted from whatever the master control sends: an `initPosition` instant action, or the `mapId` on incoming order nodes. The client never asserts its own map, so `mapId` is empty until the first order/localization arrives.
+- **Connection** — `ONLINE` is published on connect, `OFFLINE` on `Disconnect`, and a `CONNECTIONBROKEN` last-will is delivered by the broker if the client drops uncleanly.
 
 ### Events and Blueprint Functions
 
@@ -54,7 +64,6 @@ Events handle incoming orders and connection status.
 | Event | Parameter | Description |
 |-------|-----------|-------------|
 | `OnNodeDispatch` | `FVDA5050NodeInfo` | Fired when the next node in the current order is ready for execution. Contains the node ID, sequence ID, target position, and orientation. The target position can be further broken down into floating point variables `X`, `Y`, `Z`|
-| `OnOrderReceived` | `FVDA5050OrderInfo` | Fired when a new order is received from the master control. Contains the full order with all nodes and the order/update IDs |
 | `OnConnectComplete` | `bool bSuccess` | Fired when the MQTT connection attempt completes. `true` if connected successfully, `false` on failure |
 
 
@@ -70,6 +79,7 @@ Functions can be accessed by left-clicking and dragging the `VDA5050Client` vari
 | `Connect` | BrokerAddress, InterfaceName, Version, Manufacturer, SerialNumber | Establish an MQTT connection to the broker and subscribe to the order topic. All parameters are optional and will fall back to the component's configured defaults if not provided |
 | `Disconnect` | - | Gracefully disconnect from the MQTT broker and clean up subscriptions |
 | `AcknowledgeNode` | SequenceId | Acknowledge completion of a dispatched node. Call this after the AGV has reached the node's target position. This advances the order to the next node |
+| `ReportActionState` | ActionId, ActionType, Status, ResultDescription | Report the status of an action into the AGV's published `state` message. Call it as the action progresses (e.g. `Running`, then `Finished` or `Failed`). Repeated calls with the same `ActionId` update the same entry rather than adding a duplicate. See [Reporting Action State](#reporting-action-state) for the parameters |
 
 
 ## Demonstration

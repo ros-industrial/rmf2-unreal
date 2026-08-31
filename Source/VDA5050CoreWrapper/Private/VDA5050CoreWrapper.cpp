@@ -22,10 +22,6 @@
 #include <mutex>
 #include <string>
 
-#include "vda5050_core/execution/protocol_adapter.hpp"
-#include "vda5050_core/logger/logger.hpp"
-#include "vda5050_core/transport/mqtt_client_interface.hpp"
-
 #include "vda5050_core/client/adapter/action_execution.hpp"
 #include "vda5050_core/client/adapter/action_request.hpp"
 #include "vda5050_core/client/adapter/adapter.hpp"
@@ -34,6 +30,10 @@
 #include "vda5050_core/client/adapter/node_request.hpp"
 #include "vda5050_core/client/adapter/order_execution.hpp"
 #include "vda5050_core/client/adapter/state_manager.hpp"
+#include "vda5050_core/execution/protocol_adapter.hpp"
+#include "vda5050_core/logger/logger.hpp"
+#include "vda5050_core/transport/mqtt_client_interface.hpp"
+#include "vda5050_core/types/action_state.hpp"
 
 using vda5050_core::client::adapter::ActionExecution;
 using vda5050_core::client::adapter::ActionRequest;
@@ -172,6 +172,25 @@ void FVDA5050Client::ClientNodeAck(uint32_t SequenceId)
     Impl->state_manager->set_driving(false);
     execution->finished();
   }
+}
+
+void FVDA5050Client::ReportActionState(
+    const std::string& ActionId,
+    const std::string& ActionType,
+    int Status,
+    const std::string& ResultDescription
+)
+{
+  if (!Impl || !Impl->state_manager)
+  {
+    return;
+  }
+  vda5050_core::types::ActionState state;
+  state.action_id = ActionId;
+  state.action_type = ActionType;
+  state.action_status = static_cast<vda5050_core::types::ActionStatus>(Status);
+  state.result_description = ResultDescription;
+  Impl->state_manager->add_action_state(state);
 }
 
 void FVDA5050Client::ReportPose(double X, double Y, double Theta)

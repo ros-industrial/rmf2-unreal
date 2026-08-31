@@ -49,6 +49,18 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
     Node
 );
 
+// Action execution status enum, maps directly to VDA_core's action status
+UENUM(BlueprintType)
+enum class EVDA5050ActionStatus : uint8
+{
+  Waiting,
+  Initializing,
+  Running,
+  Paused,
+  Finished,
+  Failed
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConnectComplete, bool, bSuccess);
 
 UCLASS(ClassGroup = (VDA5050), meta = (BlueprintSpawnableComponent))
@@ -119,6 +131,20 @@ public:
            Keywords = "Acknowledge VDA Node Completion")
   )
   void AcknowledgeNode(int32 SequenceId);
+
+  UFUNCTION(
+      BlueprintCallable,
+      Category = "VDA5050",
+      meta =
+          (DisplayName = "Report Action State",
+           Keywords = "Report Action Status")
+  )
+  void ReportActionState(
+      const FString& ActionId,
+      const FString& ActionType,
+      EVDA5050ActionStatus Status,
+      const FString& ResultDescription = ""
+  );
 
 protected:
   virtual void BeginPlay() override;
