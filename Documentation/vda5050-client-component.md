@@ -87,3 +87,4 @@ Functions can be accessed by left-clicking and dragging the `VDA5050Client` vari
 Example of the `VDA5050Client` Component being used with `AI MoveTo`
 
 ![Example of VDAClient Blueprint Implementation](Images/VDA5050Client_EventGraph.png)
+![Example of a Pickup Action State Reporting](Images/VDA5050Client_EventGraph_PickupAction.png)
