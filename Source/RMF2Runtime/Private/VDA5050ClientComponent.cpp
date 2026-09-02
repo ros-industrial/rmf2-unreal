@@ -34,53 +34,26 @@ void UVDA5050ClientComponent::BeginPlay()
 
   Client = MakeShared<FVDA5050Client>();
 
-  Client->OnOrderReceived = [this](const FVDA5050Order& Order)
-  {
-    FVDA5050OrderInfo Info;
-    Info.OrderId = UTF8_TO_TCHAR(Order.OrderId.c_str());
-    Info.OrderUpdateId = Order.OrderUpdateId;
-    for (const auto& Node : Order.Nodes)
-    {
-      FVDA5050NodeInfo NodeInfo;
-      NodeInfo.NodeId = UTF8_TO_TCHAR(Node.NodeId.c_str());
-      NodeInfo.SequenceId = Node.SequenceId;
-      // Convert from UE5's coordinate system to VDA standard.
-      NodeInfo.Position = FVector(
-          Node.X * CM_TO_M,
-          Node.Y * CM_TO_M,
-          GetOwner()->GetActorLocation().Z
-      );
-      // The current UE5 controller does not take heading angle into account. As
-      // of now the Theta value is not in use.
-      // TODO(DillonChew98): Make controller utilise theta value if specified.
-      NodeInfo.Theta = Node.Theta.value_or(0);
-      Info.Nodes.Add(NodeInfo);
-    }
-    OnOrderReceived.Broadcast(Info);
-  };
-
   Client->OnNodeDispatch = [this](const FVDA5050Node& Node)
   {
-    FVDA5050NodeInfo NodeInfo;
-    NodeInfo.NodeId = UTF8_TO_TCHAR(Node.NodeId.c_str());
-    NodeInfo.SequenceId = Node.SequenceId;
-    NodeInfo.Position = FVector(
-        Node.X * CM_TO_M,
-        Node.Y * CM_TO_M,
-        GetOwner()->GetActorLocation().Z
+    // Need to specify game thread to run task as although OnNodeDispatch is
+    // called from the adapter thread, Broadcast() runs on game thread
+    AsyncTask(
+        ENamedThreads::GameThread,
+        [this, Node]()
+        {
+          FVDA5050NodeInfo NodeInfo;
+          NodeInfo.NodeId = UTF8_TO_TCHAR(Node.NodeId.c_str());
+          NodeInfo.SequenceId = Node.SequenceId;
+          NodeInfo.Position = FVector(
+              Node.X * CM_TO_M,
+              Node.Y * CM_TO_M,
+              GetOwner()->GetActorLocation().Z
+          );
+          NodeInfo.Theta = Node.Theta.value_or(0);
+          OnNodeDispatch.Broadcast(NodeInfo);
+        }
     );
-    NodeInfo.Theta = Node.Theta.value_or(0);
-    OnNodeDispatch.Broadcast(NodeInfo);
-  };
-
-  // Sends back current position of robot to the VDA Client.
-  Client->OnPositionRequest = [this](double& X, double& Y, double& Theta)
-  {
-    FVector Pos = GetOwner()->GetActorLocation();
-    FRotator Rot = GetOwner()->GetActorRotation();
-    X = Pos.X / CM_TO_M;
-    Y = Pos.Y / CM_TO_M;
-    Theta = FMath::DegreesToRadians(Rot.Yaw);
   };
 
   if (bAutoConnect)
@@ -132,10 +105,6 @@ void UVDA5050ClientComponent::Connect(
             TCHAR_TO_UTF8(*manufacturer),
             TCHAR_TO_UTF8(*serial_number)
         );
-        if (bSuccess)
-        {
-          Client->SetPublishState(bPublishState);
-        }
         // TODO(DillonChew98): Add case to handle connection failure.
         // while (!bSuccess) {}
         AsyncTask(
@@ -162,6 +131,24 @@ void UVDA5050ClientComponent::AcknowledgeNode(int32 SequenceId)
   }
 }
 
+void UVDA5050ClientComponent::ReportActionState(
+    const FString& ActionId,
+    const FString& ActionType,
+    EVDA5050ActionStatus Status,
+    const FString& ResultDescription
+)
+{
+  if (Client)
+  {
+    Client->ReportActionState(
+        TCHAR_TO_UTF8(*ActionId),
+        TCHAR_TO_UTF8(*ActionType),
+        static_cast<int>(Status),
+        TCHAR_TO_UTF8(*ResultDescription)
+    );
+  }
+}
+
 void UVDA5050ClientComponent::TickComponent(
     float DeltaTime,
     ELevelTick TickType,
@@ -171,6 +158,11 @@ void UVDA5050ClientComponent::TickComponent(
   Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
   if (Client)
   {
-    Client->SpinOnce();
+    FVector Pos = GetOwner()->GetActorLocation();
+    FRotator Rot = GetOwner()->GetActorRotation();
+    double X = Pos.X / CM_TO_M;
+    double Y = Pos.Y / CM_TO_M;
+    double Theta = FMath::DegreesToRadians(Rot.Yaw);
+    Client->ReportPose(X, Y, Theta);
   }
 }

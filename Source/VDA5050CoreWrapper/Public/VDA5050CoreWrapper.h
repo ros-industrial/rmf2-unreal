@@ -32,11 +32,12 @@ struct FVDA5050Node
   std::optional<double> Theta;
 };
 
-struct FVDA5050Order
+struct FVDA5050Action
 {
-  std::string OrderId;
-  uint32_t OrderUpdateId;
-  std::vector<FVDA5050Node> Nodes;
+  std::string ActionId;
+  std::string ActionType;
+  std::optional<std::vector<std::pair<std::string, std::string>>> ActionParams;
+  std::optional<std::string> ActionDescription;
 };
 
 class VDA5050COREWRAPPER_API FVDA5050Client
@@ -56,15 +57,18 @@ public:
 
   void Disconnect();
 
-  void SpinOnce();
-
   void ClientNodeAck(uint32_t SequenceId);
 
-  void SetPublishState(bool bEnabled);
+  void ReportActionState(
+      const std::string& ActionId,
+      const std::string& ActionType,
+      int Status,
+      const std::string& ResultDescription
+  );
+
+  void ReportPose(double X, double Y, double Theta);
 
   std::function<void(const FVDA5050Node&)> OnNodeDispatch;
-  std::function<void(const FVDA5050Order&)> OnOrderReceived;
-  std::function<void(double& X, double& Y, double& Theta)> OnPositionRequest;
 
 private:
   struct FImpl;

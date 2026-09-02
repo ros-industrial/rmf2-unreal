@@ -43,31 +43,24 @@ struct RMF2RUNTIME_API FVDA5050NodeInfo
   float Theta = 0.0f;
 };
 
-USTRUCT(BlueprintType)
-struct RMF2RUNTIME_API FVDA5050OrderInfo
-{
-  GENERATED_BODY()
-
-  UPROPERTY(BlueprintReadOnly, Category = "VDA5050")
-  FString OrderId;
-
-  UPROPERTY(BlueprintReadOnly, Category = "VDA5050")
-  int32 OrderUpdateId = 0;
-
-  UPROPERTY(BlueprintReadOnly, Category = "VDA5050")
-  TArray<FVDA5050NodeInfo> Nodes;
-};
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
     FOnNodeDispatch,
     const FVDA5050NodeInfo&,
     Node
 );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-    FOnOrderReceived,
-    const FVDA5050OrderInfo&,
-    Order
-);
+
+// Action execution status enum, maps directly to VDA_core's action status
+UENUM(BlueprintType)
+enum class EVDA5050ActionStatus : uint8
+{
+  Waiting,
+  Initializing,
+  Running,
+  Paused,
+  Finished,
+  Failed
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConnectComplete, bool, bSuccess);
 
 UCLASS(ClassGroup = (VDA5050), meta = (BlueprintSpawnableComponent))
@@ -100,14 +93,8 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VDA5050|Connection")
   bool bAutoConnect = false;
 
-  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VDA5050|State")
-  bool bPublishState = true;
-
   UPROPERTY(BlueprintAssignable, Category = "VDA5050|Events")
   FOnNodeDispatch OnNodeDispatch;
-
-  UPROPERTY(BlueprintAssignable, Category = "VDA5050|Events")
-  FOnOrderReceived OnOrderReceived;
 
   UPROPERTY(BlueprintAssignable, Category = "VDA5050|Events")
   FOnConnectComplete OnConnectComplete;
@@ -122,7 +109,7 @@ public:
   void Connect(
       const FString& InBrokerAddress = "tcp://localhost:1883",
       const FString& InInterfaceName = "",
-      const FString& InVersion = "1.0.0",
+      const FString& InVersion = "2.0.0",
       const FString& InManufacturer = "Manufacturer",
       const FString& InSerialNumber = ""
   );
@@ -144,6 +131,20 @@ public:
            Keywords = "Acknowledge VDA Node Completion")
   )
   void AcknowledgeNode(int32 SequenceId);
+
+  UFUNCTION(
+      BlueprintCallable,
+      Category = "VDA5050",
+      meta =
+          (DisplayName = "Report Action State",
+           Keywords = "Report Action Status")
+  )
+  void ReportActionState(
+      const FString& ActionId,
+      const FString& ActionType,
+      EVDA5050ActionStatus Status,
+      const FString& ResultDescription = ""
+  );
 
 protected:
   virtual void BeginPlay() override;
