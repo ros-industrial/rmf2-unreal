@@ -167,4 +167,5 @@ public:
 
 private:
   TSharedPtr<FVDA5050Client> Client;
+  float TimeSinceActionPrune = 0;
 };

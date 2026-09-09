@@ -23,6 +23,8 @@
 
 static constexpr double CM_TO_M = 100.0;
 
+static constexpr float ActionPruneInterval = 5;
+
 UVDA5050ClientComponent::UVDA5050ClientComponent()
 {
   PrimaryComponentTick.bCanEverTick = true;
@@ -91,30 +93,24 @@ void UVDA5050ClientComponent::Connect(
     Theta = InitPose.Theta;
   };
 
-  FString broker_address = InBrokerAddress;
-  FString interface_name = InInterfaceName;
-  FString version = InVersion;
-  FString manufacturer = InManufacturer;
-  FString serial_number = InSerialNumber;
-
   // Might be a better idea to specify specific threads to run this on. As of
   // now no apparent implicationss using AnyThread
   AsyncTask(
       ENamedThreads::AnyThread,
       [this,
-       broker_address,
-       interface_name,
-       version,
-       manufacturer,
-       serial_number]()
+       InBrokerAddress,
+       InInterfaceName,
+       InVersion,
+       InManufacturer,
+       InSerialNumber]()
       {
         // This code will run asynchronously, without freezing the game thread.
         bool bSuccess = Client->Connect(
-            TCHAR_TO_UTF8(*broker_address),
-            TCHAR_TO_UTF8(*interface_name),
-            TCHAR_TO_UTF8(*version),
-            TCHAR_TO_UTF8(*manufacturer),
-            TCHAR_TO_UTF8(*serial_number)
+            TCHAR_TO_UTF8(*InBrokerAddress),
+            TCHAR_TO_UTF8(*InInterfaceName),
+            TCHAR_TO_UTF8(*InVersion),
+            TCHAR_TO_UTF8(*InManufacturer),
+            TCHAR_TO_UTF8(*InSerialNumber)
         );
         // TODO(DillonChew98): Add case to handle connection failure.
         // while (!bSuccess) {}
@@ -169,8 +165,15 @@ void UVDA5050ClientComponent::TickComponent(
   Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
   if (Client)
   {
-    Position P = GetPosition();
-    Client->ReportPose(P.X, P.Y, P.Theta);
+    Position Pose = GetPosition();
+    Client->ReportPose(Pose.X, Pose.Y, Pose.Theta);
+
+    TimeSinceActionPrune += DeltaTime;
+    if (TimeSinceActionPrune >= ActionPruneInterval)
+    {
+      TimeSinceActionPrune = 0;
+      Client->PruneActionStates();
+    }
   }
 }
 

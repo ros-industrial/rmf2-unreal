@@ -18,9 +18,11 @@
 
 #include "VDA5050CoreWrapper.h"
 
+#include <cstddef>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 
 #include "vda5050_core/client/adapter/action_execution.hpp"
 #include "vda5050_core/client/adapter/action_request.hpp"
@@ -34,6 +36,7 @@
 #include "vda5050_core/logger/logger.hpp"
 #include "vda5050_core/transport/mqtt_client_interface.hpp"
 #include "vda5050_core/types/action_state.hpp"
+#include "vda5050_core/types/battery_state.hpp"
 
 using vda5050_core::client::adapter::ActionExecution;
 using vda5050_core::client::adapter::ActionRequest;
@@ -44,6 +47,9 @@ using vda5050_core::client::adapter::NodeRequest;
 using vda5050_core::client::adapter::OrderExecution;
 using vda5050_core::client::adapter::StateManager;
 using vda5050_core::execution::ProtocolAdapter;
+using vda5050_core::types::ActionState;
+using vda5050_core::types::ActionStatus;
+using vda5050_core::types::BatteryState;
 
 struct FVDA5050Client::FImpl
 {
@@ -149,6 +155,11 @@ bool FVDA5050Client::Connect(
     Impl->state_manager->set_position(x, y, theta, "");
   }
 
+  // Set battery charge to 100 on connect
+  BatteryState battery_state;
+  battery_state.battery_charge = 100.0;
+  Impl->state_manager->set_battery_state(battery_state);
+
   try
   {
     Impl->adapter->start();
@@ -196,7 +207,7 @@ void FVDA5050Client::ReportActionState(
   vda5050_core::types::ActionState state;
   state.action_id = ActionId;
   state.action_type = ActionType;
-  state.action_status = static_cast<vda5050_core::types::ActionStatus>(Status);
+  state.action_status = static_cast<ActionStatus>(Status);
   state.result_description = ResultDescription;
   Impl->state_manager->add_action_state(state);
 }
@@ -213,6 +224,33 @@ void FVDA5050Client::ReportPose(double X, double Y, double Theta)
     map_id = Impl->map_id;
   }
   Impl->state_manager->set_position(X, Y, Theta, map_id);
+}
+
+void FVDA5050Client::PruneActionStates()
+{
+  if (!Impl || !Impl->state_manager)
+  {
+    return;
+  }
+  std::size_t max_action_states = 10;
+  std::vector<ActionState> action_states =
+      Impl->state_manager->state().action_states;
+  if (action_states.size() <= max_action_states)
+  {
+    return;
+  }
+
+  std::vector<ActionState> active_states;
+  for (auto& action_state : action_states)
+  {
+    if (action_state.action_status != ActionStatus::FINISHED &&
+        action_state.action_status != ActionStatus::FAILED)
+    {
+      active_states.emplace_back(std::move(action_state));
+    }
+  }
+
+  Impl->state_manager->set_action_states(active_states);
 }
 
 void FVDA5050Client::Disconnect()

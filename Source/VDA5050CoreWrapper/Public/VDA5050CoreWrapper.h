@@ -66,6 +66,8 @@ public:
       const std::string& ResultDescription
   );
 
+  void PruneActionStates();
+
   void ReportPose(double X, double Y, double Theta);
 
   std::function<void(const FVDA5050Node&)> OnNodeDispatch;
