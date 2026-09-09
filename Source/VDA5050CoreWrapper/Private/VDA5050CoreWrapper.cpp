@@ -141,6 +141,14 @@ bool FVDA5050Client::Connect(
         execution->finished();
       }
   );
+
+  if (OnPositionRequest)
+  {
+    double x, y, theta;
+    OnPositionRequest(x, y, theta);
+    Impl->state_manager->set_position(x, y, theta, "");
+  }
+
   try
   {
     Impl->adapter->start();

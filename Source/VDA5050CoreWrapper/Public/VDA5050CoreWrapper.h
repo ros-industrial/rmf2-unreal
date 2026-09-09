@@ -70,6 +70,8 @@ public:
 
   std::function<void(const FVDA5050Node&)> OnNodeDispatch;
 
+  std::function<void(double& X, double& Y, double& Theta)> OnPositionRequest;
+
 private:
   struct FImpl;
   std::unique_ptr<FImpl> Impl;

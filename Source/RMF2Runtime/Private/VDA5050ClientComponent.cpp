@@ -80,6 +80,17 @@ void UVDA5050ClientComponent::Connect(
   if (!Client)
     return;
 
+  // Delegate to set position on connect. Required as state_manager might
+  // process actions before the first tick of the game engine to set agv
+  // position, publishing an empty agv position update
+  Position InitPose = GetPosition();
+  Client->OnPositionRequest = [InitPose](double& X, double& Y, double& Theta)
+  {
+    X = InitPose.X;
+    Y = InitPose.Y;
+    Theta = InitPose.Theta;
+  };
+
   FString broker_address = InBrokerAddress;
   FString interface_name = InInterfaceName;
   FString version = InVersion;
@@ -158,11 +169,19 @@ void UVDA5050ClientComponent::TickComponent(
   Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
   if (Client)
   {
-    FVector Pos = GetOwner()->GetActorLocation();
-    FRotator Rot = GetOwner()->GetActorRotation();
-    double X = Pos.X / CM_TO_M;
-    double Y = Pos.Y / CM_TO_M;
-    double Theta = FMath::DegreesToRadians(Rot.Yaw);
-    Client->ReportPose(X, Y, Theta);
+    Position P = GetPosition();
+    Client->ReportPose(P.X, P.Y, P.Theta);
   }
+}
+
+Position UVDA5050ClientComponent::GetPosition()
+{
+  Position Pose;
+  FVector Pos = GetOwner()->GetActorLocation();
+  FRotator Rot = GetOwner()->GetActorRotation();
+  Pose.X = Pos.X / CM_TO_M;
+  Pose.Y = Pos.Y / CM_TO_M;
+  Pose.Theta = FMath::DegreesToRadians(Rot.Yaw);
+
+  return Pose;
 }

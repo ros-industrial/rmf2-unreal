@@ -61,6 +61,11 @@ enum class EVDA5050ActionStatus : uint8
   Failed
 };
 
+struct Position
+{
+  double X, Y, Theta;
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConnectComplete, bool, bSuccess);
 
 UCLASS(ClassGroup = (VDA5050), meta = (BlueprintSpawnableComponent))
@@ -145,6 +150,8 @@ public:
       EVDA5050ActionStatus Status,
       const FString& ResultDescription = ""
   );
+
+  Position GetPosition();
 
 protected:
   virtual void BeginPlay() override;
