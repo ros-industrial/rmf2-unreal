@@ -267,5 +267,5 @@ void FVDA5050Client::Disconnect()
 
 void FVDA5050Client::SetMaxActionStates(int MaxActionStates)
 {
-  Impl->max_action_states = static_cast<std::size_t> (MaxActionStates);
+  Impl->max_action_states = static_cast<std::size_t>(MaxActionStates);
 }
