@@ -59,7 +59,7 @@ struct FVDA5050Client::FImpl
   std::shared_ptr<OrderExecution> active_navigation;
   std::mutex mutex;
   std::string map_id;
-  int max_action_states;
+  std::size_t max_action_states = 10;
 };
 
 FVDA5050Client::FVDA5050Client() : Impl(std::make_unique<FImpl>()) {}
@@ -267,5 +267,5 @@ void FVDA5050Client::Disconnect()
 
 void FVDA5050Client::SetMaxActionStates(int MaxActionStates)
 {
-  Impl->max_action_states = static_cast<std::size_t> MaxActionStates;
+  Impl->max_action_states = static_cast<std::size_t> (MaxActionStates);
 }
