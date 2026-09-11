@@ -70,6 +70,8 @@ public:
 
   void ReportPose(double X, double Y, double Theta);
 
+  void SetMaxActionStates(int MaxActionStates);
+
   std::function<void(const FVDA5050Node&)> OnNodeDispatch;
 
   std::function<void(double& X, double& Y, double& Theta)> OnPositionRequest;

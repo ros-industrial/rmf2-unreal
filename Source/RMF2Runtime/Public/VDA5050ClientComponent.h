@@ -88,6 +88,9 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VDA5050|Connection")
   FString Manufacturer = TEXT("Manufacturer");
 
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VDA5050|Action")
+  uint8 MaxActionStates = 10;
+
   UPROPERTY(
       EditInstanceOnly,
       BlueprintReadWrite,

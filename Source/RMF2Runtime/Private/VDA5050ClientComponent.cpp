@@ -60,6 +60,7 @@ void UVDA5050ClientComponent::BeginPlay()
 
   if (bAutoConnect)
   {
+    Client->SetMaxActionStates(MaxActionStates);
     Connect(BrokerAddress, InterfaceName, Version, Manufacturer, SerialNumber);
   }
 }
