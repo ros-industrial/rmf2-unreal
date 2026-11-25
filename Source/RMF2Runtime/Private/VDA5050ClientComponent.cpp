@@ -47,9 +47,10 @@ void UVDA5050ClientComponent::BeginPlay()
           FVDA5050NodeInfo NodeInfo;
           NodeInfo.NodeId = UTF8_TO_TCHAR(Node.NodeId.c_str());
           NodeInfo.SequenceId = Node.SequenceId;
+          // Negate Y: VDA5050 is right-handed, UE5 left-handed (issue #17).
           NodeInfo.Position = FVector(
               Node.X * CM_TO_M,
-              Node.Y * CM_TO_M,
+              -Node.Y * CM_TO_M,
               GetOwner()->GetActorLocation().Z
           );
           NodeInfo.Theta = Node.Theta.value_or(0);
@@ -184,7 +185,8 @@ Position UVDA5050ClientComponent::GetPosition()
   FVector Pos = GetOwner()->GetActorLocation();
   FRotator Rot = GetOwner()->GetActorRotation();
   Pose.X = Pos.X / CM_TO_M;
-  Pose.Y = Pos.Y / CM_TO_M;
+  // Negate Y back to VDA5050 right-handed frame (issue #17).
+  Pose.Y = -Pos.Y / CM_TO_M;
   Pose.Theta = FMath::DegreesToRadians(Rot.Yaw);
 
   return Pose;
